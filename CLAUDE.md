@@ -106,6 +106,9 @@ app/
 6. Fix linting issues: `npm run lint:fix`
 7. Create PR with clear description
 
+### Development Best Practices
+- Run typecheck and lint after completing tasks and be sure they ALWAYS pass.
+
 ### Data Flow
 1. **Routes** define loaders (data fetching) and actions (mutations)
 2. **Components** consume data via `useLoaderData()` and `useFetcher()`
