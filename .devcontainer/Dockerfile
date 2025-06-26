@@ -55,6 +55,12 @@ RUN apt-get update && apt-get install -y less \
   jq \
   && rm -rf /var/lib/apt/lists/*
 
+# Install git-secrets
+RUN git clone https://github.com/awslabs/git-secrets.git /tmp/git-secrets && \
+    cd /tmp/git-secrets && \
+    make install && \
+    rm -rf /tmp/git-secrets
+
 # Ensure default node user has access to /usr/local/share
 RUN mkdir -p /usr/local/share/npm-global && \
   chown -R node:node /usr/local/share
