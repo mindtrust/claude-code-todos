@@ -3,8 +3,12 @@
   "build": {
     "dockerfile": "Dockerfile",
     "args": {
-      "TZ": "${localEnv:TZ:America/Los_Angeles}"
+      "TZ": "${localEnv:TZ:Asia/Tokyo}"
     }
+  },
+  "containerEnv": {
+    "LANG": "ja_JP.UTF-8",
+    "LC_ALL": "ja_JP.UTF-8"
   },
   "runArgs": [
     "--cap-add=NET_ADMIN",
@@ -44,9 +48,12 @@
   "remoteEnv": {
     "NODE_OPTIONS": "--max-old-space-size=4096",
     "CLAUDE_CONFIG_DIR": "/home/node/.claude",
-    "POWERLEVEL9K_DISABLE_GITSTATUS": "true"
+    "POWERLEVEL9K_DISABLE_GITSTATUS": "true",
+    "LANG": "ja_JP.UTF-8",
+    "LANGUAGE": "ja_JP:ja",
+    "LC_ALL": "ja_JP.UTF-8"
   },
   "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=delegated",
-  "workspaceFolder": "/workspace",
+  "workspaceFolder": "/workspace"
   // "postCreateCommand": "sudo /usr/local/bin/init-firewall.sh"
 }

@@ -1,10 +1,43 @@
 FROM node:20
 
-ARG TZ
-ENV TZ="$TZ"
+ARG TZ=Asia/Tokyo
+ENV TZ=${TZ}
+
+# 日本語ロケールのインストールと設定（より確実な方法）
+RUN apt-get update && apt-get install -y \
+    locales \
+    locales-all \
+    tzdata \
+    && rm -rf /var/lib/apt/lists/*
+
+# 既存のロケール設定をクリーンアップ
+RUN rm -f /etc/locale.gen
+
+# 日本語ロケールを確実に設定
+RUN echo "ja_JP.UTF-8 UTF-8" > /etc/locale.gen && \
+    echo "en_US.UTF-8 UTF-8" >> /etc/locale.gen && \
+    locale-gen && \
+    update-locale LANG=ja_JP.UTF-8
+
+# /etc/default/localeファイルを直接編集
+RUN echo "LANG=ja_JP.UTF-8" > /etc/default/locale && \
+    echo "LANGUAGE=ja_JP:ja" >> /etc/default/locale && \
+    echo "LC_ALL=ja_JP.UTF-8" >> /etc/default/locale
+
+# 環境変数の設定
+ENV LANG=ja_JP.UTF-8
+ENV LC_ALL=ja_JP.UTF-8
+ENV LANGUAGE=ja_JP:ja
+
+# タイムゾーンの設定
+RUN ln -snf /usr/share/zoneinfo/${TZ} /etc/localtime && echo ${TZ} > /etc/timezone
+
+# ロケール設定の確認（デバッグ用）
+RUN locale-gen --purge ja_JP.UTF-8 && \
+    dpkg-reconfigure --frontend=noninteractive locales
 
 # Install basic development tools and iptables/ipset
-RUN apt update && apt install -y less \
+RUN apt-get update && apt-get install -y less \
   git \
   procps \
   sudo \
@@ -19,7 +52,8 @@ RUN apt update && apt install -y less \
   iproute2 \
   dnsutils \
   aggregate \
-  jq
+  jq \
+  && rm -rf /var/lib/apt/lists/*
 
 # Ensure default node user has access to /usr/local/share
 RUN mkdir -p /usr/local/share/npm-global && \
@@ -40,11 +74,25 @@ ENV DEVCONTAINER=true
 RUN mkdir -p /workspace /home/node/.claude && \
   chown -R node:node /workspace /home/node/.claude
 
+# nodeユーザーの環境設定ファイルにロケール設定を追加
+RUN echo 'export LANG=ja_JP.UTF-8' >> /home/node/.bashrc && \
+    echo 'export LC_ALL=ja_JP.UTF-8' >> /home/node/.bashrc && \
+    echo 'export LANGUAGE=ja_JP:ja' >> /home/node/.bashrc && \
+    echo 'export TZ=Asia/Tokyo' >> /home/node/.bashrc && \
+    chown node:node /home/node/.bashrc
+
+# zshrcファイルにも設定を追加
+RUN echo 'export LANG=ja_JP.UTF-8' >> /home/node/.zshrc && \
+    echo 'export LC_ALL=ja_JP.UTF-8' >> /home/node/.zshrc && \
+    echo 'export LANGUAGE=ja_JP:ja' >> /home/node/.zshrc && \
+    echo 'export TZ=Asia/Tokyo' >> /home/node/.zshrc && \
+    chown node:node /home/node/.zshrc
+
 WORKDIR /workspace
 
 RUN ARCH=$(dpkg --print-architecture) && \
   wget "https://github.com/dandavison/delta/releases/download/0.18.2/git-delta_0.18.2_${ARCH}.deb" && \
-  sudo dpkg -i "git-delta_0.18.2_${ARCH}.deb" && \
+  dpkg -i "git-delta_0.18.2_${ARCH}.deb" && \
   rm "git-delta_0.18.2_${ARCH}.deb"
 
 # Set up non-root user
@@ -64,15 +112,13 @@ RUN sh -c "$(wget -O- https://github.com/deluan/zsh-in-docker/releases/download/
   -a "source /usr/share/doc/fzf/examples/key-bindings.zsh" \
   -a "source /usr/share/doc/fzf/examples/completion.zsh" \
   -a "export PROMPT_COMMAND='history -a' && export HISTFILE=/commandhistory/.bash_history" \
+  -a "export LANG=ja_JP.UTF-8" \
+  -a "export LC_ALL=ja_JP.UTF-8" \
+  -a "export LANGUAGE=ja_JP:ja" \
+  -a "export TZ=Asia/Tokyo" \
   -x
 
 # Install Claude
 RUN npm install -g @anthropic-ai/claude-code
 
-# Copy and set up firewall script
-# COPY init-firewall.sh /usr/local/bin/
-# USER root
-# RUN chmod +x /usr/local/bin/init-firewall.sh && \
-#   echo "node ALL=(root) NOPASSWD: /usr/local/bin/init-firewall.sh" > /etc/sudoers.d/node-firewall && \
-#   chmod 0440 /etc/sudoers.d/node-firewall
 USER node
